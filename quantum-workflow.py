@@ -36,7 +36,38 @@ from mpl_toolkits.mplot3d import Axes3D
 ##############################
 
 def load_data(filepath):
-    """Load workflow data from CSV into a pandas DataFrame."""
+    """
+    # Load and validate workflow data from CSV file
+    
+    ## Purpose
+    Loads task workflow data from a CSV file into a pandas DataFrame, performing basic validation
+    and error handling.
+    
+    ## Parameters
+    - filepath (str): Path to the CSV file containing workflow data
+    
+    ## Returns 
+    - pd.DataFrame: DataFrame containing the workflow information with columns:
+        - taskID: Unique identifier for each task
+        - jobID: Associated job identifier 
+        - CPU: Required CPU cores
+        - RAM: Required RAM in GB
+        - disk: Required disk space in GB
+        - Runtime_C1/C2/C3: Task runtime on each processor
+        - deadline: Task completion deadline
+        - task_type: Category/type of the task
+        - parent_task: Dependencies (tasks that must complete first)
+    
+    ## Raises
+    - FileNotFoundError: If the specified CSV file does not exist
+    - Exception: For other CSV parsing or loading errors
+    
+    ## Example
+    ```python
+    df = load_data("workflow.csv")
+    print(f"Loaded {len(df)} workflow tasks")
+    ```
+    """
     try:
         df = pd.read_csv(filepath, delimiter=',')
         print("CSV data loaded successfully.")
@@ -53,7 +84,47 @@ def load_data(filepath):
 ##############################
 
 def build_graph(df):
-    """Build a directed acyclic graph (DAG) from workflow DataFrame."""
+    """
+    # Construct Directed Acyclic Graph (DAG) from workflow data
+    
+    ## Purpose
+    Creates a NetworkX DiGraph representing the workflow tasks and their dependencies.
+    Validates the graph structure and ensures it remains acyclic.
+    
+    ## Parameters
+    - df (pd.DataFrame): Workflow data containing task information and dependencies
+    
+    ## Returns
+    - nx.DiGraph: A directed acyclic graph where:
+        - Nodes: Tasks with attributes (CPU, RAM, disk, runtimes, etc.)
+        - Edges: Dependencies between tasks
+        
+    ## Node Attributes
+    Each node (task) contains:
+    - jobID: Associated job identifier
+    - CPU: Required CPU cores
+    - RAM: Required RAM in GB
+    - disk: Required disk space in GB
+    - Runtime_C1/C2/C3: Execution time on each processor
+    - deadline: Task completion deadline
+    - task_type: Category of the task
+    - task_category: Standardized task category
+    
+    ## Implementation Details
+    1. Creates empty DiGraph
+    2. Adds nodes for each task with resource requirements
+    3. Parses parent task dependencies
+    4. Adds edges for dependencies 
+    5. Validates graph is acyclic
+    
+    ## Example
+    ```python
+    df = load_data("workflow.csv")
+    G = build_graph(df)
+    print(f"Created DAG with {G.number_of_nodes()} nodes and {G.number_of_edges()} edges")
+    ```
+    """
+
     G = nx.DiGraph()
     task_type_col = 'K' if 'K' in df.columns else 'task_type'
 
@@ -106,8 +177,49 @@ def build_graph(df):
 
 def visualize_graph(G, df):
     """
-    Visualize the DAG in layers: parent tasks on top, child tasks below.
-    Nodes are color-coded by task category.
+    # Create layered visualization of workflow DAG
+    
+    ## Purpose
+    Generates a hierarchical visualization of the workflow graph with:
+    - Tasks arranged in layers based on dependencies
+    - Color coding by task category
+    - Clear display of dependencies as directed edges
+    - Interactive legend for task types
+    
+    ## Parameters
+    - G (nx.DiGraph): Workflow graph to visualize
+    - df (pd.DataFrame): Original workflow data for category information
+    
+    ## Visualization Features
+    1. Layered Layout:
+        - Parent tasks positioned above children
+        - Tasks in same layer spread horizontally
+        - Minimizes edge crossings
+        
+    2. Visual Elements:
+        - Nodes: Color-coded by task category
+        - Edges: Gray arrows showing dependencies
+        - Labels: Task IDs displayed on nodes
+        - Legend: Task type color mapping
+        
+    3. Formatting:
+        - Figure size: 18x12 inches
+        - Node size: 600
+        - Font sizes: 9pt for labels, 16pt for title
+        
+    ## Implementation Steps
+    1. Compute layer assignments using topological sorting
+    2. Calculate node positions using layer-based coordinates
+    3. Define color scheme for task categories
+    4. Draw graph components (nodes, edges, labels)
+    5. Add legend and formatting
+    
+    ## Example
+    ```python
+    G = build_graph(df)
+    visualize_graph(G, df)
+    plt.savefig('workflow_visualization.png')
+    ```
     """
     import matplotlib.pyplot as plt
     from collections import deque, defaultdict
@@ -209,22 +321,38 @@ def visualize_resource_usage(G):
 
 def create_qubo_matrix(G, num_processors=3):
     """
-    Create QUBO matrix for workflow scheduling as QAP
+    Constructs a Quadratic Unconstrained Binary Optimization (QUBO) matrix for workflow scheduling problems.
+    
+    This function creates a binary optimization matrix that encodes the following constraints and objectives:
+    1. Task Assignment: Each task must be assigned to exactly one processor
+    2. Resource Capacity: Processors have limited CPU, RAM, and disk capacity
+    3. Task Dependencies: Respects the workflow's directed acyclic graph structure
+    4. Execution Time: Minimizes total execution time across all processors
+    
     Parameters:
-        G: NetworkX DiGraph containing workflow
-        num_processors: Number of available processors (default=3 from Runtime_C1/C2/C3)
+    -----------
+    G : networkx.DiGraph
+        A directed acyclic graph where nodes represent tasks with attributes:
+        - CPU: Required CPU cores
+        - RAM: Required RAM in GB
+        - disk: Required disk space in GB
+        - Runtime_C1/C2/C3: Execution time on each processor
+    num_processors : int, default=3
+        Number of available processors for task assignment
+        
     Returns:
-        QUBO matrix for the scheduling problem
+    --------
+    numpy.ndarray
+        A square matrix of size (num_tasks * num_processors) representing the QUBO problem
+        where element [i,j] represents the cost/penalty for assigning task i to processor j
     """
 
-    # Define processor capacity (example values, adjust as needed)
     processor_capacity = {
-        'CPU': 8,   # Number of CPU cores per processor
-        'RAM': 32,  # RAM in GB per processor
-        'disk': 500 # Disk in GB per processor
+        'CPU': 8,    
+        'RAM': 32,   
+        'disk': 500  
     }
     
-    # Get task IDs and create a mapping to consecutive integers
     task_ids = list(G.nodes())
     task_to_idx = {task_id: idx for idx, task_id in enumerate(task_ids)}
     
@@ -232,8 +360,14 @@ def create_qubo_matrix(G, num_processors=3):
     matrix_size = num_tasks * num_processors
     Q = np.zeros((matrix_size, matrix_size))
     
-    # 1. Assignment constraints (each task must be assigned to exactly one processor)
-    A = 1000  # Penalty weight
+    """
+    Assignment Constraints Section
+    ----------------------------
+    Ensures each task is assigned to exactly one processor by adding penalties
+    for multiple assignments. Uses quadratic terms in the QUBO matrix to enforce
+    this constraint through high penalty values for invalid assignments.
+    """
+    A = 1000  
     for task in range(num_tasks):
         for p1 in range(num_processors):
             idx1 = task * num_processors + p1
@@ -242,7 +376,13 @@ def create_qubo_matrix(G, num_processors=3):
                     idx2 = task * num_processors + p2
                     Q[idx1][idx2] += A
     
-    # 2. Task execution costs
+    """
+    Task Execution Cost Section
+    -------------------------
+    Incorporates the actual execution time costs for each task-processor 
+    combination. These costs are taken directly from the Runtime attributes
+    in the input graph and form the diagonal elements of the QUBO matrix.
+    """
     for task_id in task_ids:
         task = G.nodes[task_id]
         task_idx = task_to_idx[task_id]
@@ -251,8 +391,14 @@ def create_qubo_matrix(G, num_processors=3):
             runtime = task[f'Runtime_C{p+1}']
             Q[idx][idx] += runtime
     
-    # 3. Precedence constraints from DAG
-    B = 1000  # Dependency penalty weight
+    """
+    Precedence Constraints Section
+    ----------------------------
+    Enforces task dependencies from the DAG structure by adding penalties
+    for violating these dependencies. Uses the graph edges to determine
+    which tasks must complete before others can begin.
+    """
+    B = 1000  
     for edge in G.edges():
         task1_idx = task_to_idx[edge[0]]
         task2_idx = task_to_idx[edge[1]]
@@ -262,34 +408,62 @@ def create_qubo_matrix(G, num_processors=3):
                 idx2 = task2_idx * num_processors + p2
                 Q[idx1][idx2] += B
     
-    # Add resource constraints
-    C = 1000  # Resource violation penalty
+    """
+    Resource Constraints Section
+    --------------------------
+    Adds penalties for exceeding processor resource capacities (CPU, RAM, disk).
+    These constraints ensure that the total resource usage on each processor
+    stays within the defined limits by adding quadratic penalty terms.
+    """
+    C = 1000  
     for task_id in task_ids:
         task = G.nodes[task_id]
         task_idx = task_to_idx[task_id]
         
-        # CPU constraints
-        cpu_required = task['CPU']
         for p in range(num_processors):
             idx = task_idx * num_processors + p
-            Q[idx][idx] += C * max(0, cpu_required - processor_capacity['CPU'])
             
-        # RAM constraints
-        ram_required = task['RAM']
-        for p in range(num_processors):
-            idx = task_idx * num_processors + p
-            Q[idx][idx] += C * max(0, ram_required - processor_capacity['RAM'])
+            cpu_violation = max(0, task['CPU'] - processor_capacity['CPU'])
+            ram_violation = max(0, task['RAM'] - processor_capacity['RAM'])
+            disk_violation = max(0, task['disk'] - processor_capacity['disk'])
             
-        # Disk constraints
-        disk_required = task['disk']
-        for p in range(num_processors):
-            idx = task_idx * num_processors + p
-            Q[idx][idx] += C * max(0, disk_required - processor_capacity['disk'])
+            Q[idx][idx] += C * (cpu_violation + ram_violation + disk_violation)
     
     return Q
 
 def create_resource_hamiltonian(G, processor_capacities):
-    """Create resource constraint Hamiltonian"""
+    """
+    # Create Resource Constraint Hamiltonian for Quantum Optimization
+    
+    ## Purpose
+    Constructs Hamiltonian terms that enforce resource constraints in quantum optimization.
+    Each term represents a penalty for violating processor capacity limits.
+    
+    ## Parameters
+    - G (nx.DiGraph): Workflow graph with task resource requirements
+    - processor_capacities (dict): Maximum resource limits for each processor
+        - CPU: Maximum CPU cores
+        - RAM: Maximum RAM in GB
+        - disk: Maximum disk space in GB
+    
+    ## Returns
+    - list: Combined Hamiltonian terms for all resource constraints
+        Each term is a tuple (variable_name, coefficient)
+        where variable_name is of format "Z_taskId_processorId"
+    
+    ## Implementation Details
+    1. Iterates through each task and processor combination
+    2. Checks for resource requirement violations
+    3. Creates penalty terms for CPU, RAM, and disk constraints
+    4. Uses 1000 as penalty coefficient for violations
+    
+    ## Example
+    ```python
+    capacities = {'CPU': 8, 'RAM': 32, 'disk': 500}
+    terms = create_resource_hamiltonian(G, capacities)
+    print(f"Generated {len(terms)} constraint terms")
+    ```
+    """
     num_tasks = len(G.nodes())
     num_processors = 3
     
@@ -317,7 +491,34 @@ def create_resource_hamiltonian(G, processor_capacities):
 
 def create_qaoa_circuit(Q, p=1):
     """
-    Create QAOA solver and QuadraticProgram from QUBO matrix.
+    # Create QAOA Solver Circuit for Workflow Optimization
+    
+    ## Purpose
+    Constructs a Quantum Approximate Optimization Algorithm (QAOA) circuit
+    for solving the workflow scheduling problem using quantum optimization.
+    
+    ## Parameters
+    - Q (numpy.ndarray): QUBO matrix representing the optimization problem
+    - p (int, default=1): Number of QAOA repetitions/layers
+    
+    ## Returns
+    - tuple: (solver, qp)
+        - solver: MinimumEigenOptimizer configured with QAOA
+        - qp: QuadraticProgram instance with the optimization problem
+    
+    ## Implementation Steps
+    1. Creates QuadraticProgram instance
+    2. Defines binary variables for task-processor assignments
+    3. Sets up linear and quadratic terms from QUBO matrix
+    4. Configures QAOA with specified parameters
+    5. Creates quantum solver with AerSimulator backend
+    
+    ## Example
+    ```python
+    Q = create_qubo_matrix(G)
+    solver, qp = create_qaoa_circuit(Q, p=2)
+    result = solver.solve(qp)
+    ```
     """
     num_vars = Q.shape[0]
     qp = QuadraticProgram()
@@ -346,7 +547,40 @@ def create_qaoa_circuit(Q, p=1):
 
 def solve_workflow_scheduling(G, Q):
     """
-    Solve workflow scheduling using QAOA with fallback to classical solver
+    # Solve Workflow Scheduling Using Hybrid Quantum-Classical Approach
+    
+    ## Purpose
+    Attempts to solve the workflow scheduling problem using QAOA,
+    falling back to classical optimization if necessary.
+    
+    ## Parameters
+    - G (nx.DiGraph): Workflow graph
+    - Q (numpy.ndarray): QUBO matrix for the optimization problem
+    
+    ## Returns
+    - tuple: (assignments, objective_value)
+        - assignments: Dictionary mapping tasks to processors
+        - objective_value: Final objective function value
+    
+    ## Features
+    1. Problem Size Check:
+        - Limits quantum solution to 20 qubits
+        - Falls back to classical solver for larger problems
+    
+    2. Error Handling:
+        - Catches and handles quantum circuit execution errors
+        - Provides fallback to classical optimization
+    
+    3. Result Processing:
+        - Converts binary solution to task assignments
+        - Validates assignment feasibility
+    
+    ## Example
+    ```python
+    G = build_graph(df)
+    Q = create_qubo_matrix(G)
+    assignments, objective = solve_workflow_scheduling(G, Q)
+    ```
     """
     num_tasks = len(G.nodes())
     num_processors = 3
@@ -380,10 +614,41 @@ def solve_workflow_scheduling(G, Q):
 
 def solve_classical(G, Q):
     """
-    Classical fallback solver using simulated annealing
-    """
-    from scipy.optimize import minimize
+    # Classical Optimization Solver for Workflow Scheduling
     
+    ## Purpose
+    Provides a classical optimization solution using simulated annealing
+    when quantum approaches are not feasible.
+    
+    ## Parameters
+    - G (nx.DiGraph): Workflow graph
+    - Q (numpy.ndarray): QUBO matrix
+    
+    ## Returns
+    - tuple: (assignments, objective_value)
+        - assignments: Dictionary mapping tasks to processors
+        - objective_value: Final objective function value
+    
+    ## Implementation Details
+    1. Initial Solution:
+        - Uses round-robin task assignment
+        - Ensures feasible starting point
+    
+    2. Optimization:
+        - Employs Nelder-Mead algorithm
+        - Uses quadratic objective function
+        - Runs for 1000 iterations
+    
+    3. Solution Processing:
+        - Rounds continuous values to binary
+        - Creates task-processor mapping
+    
+    ## Example
+    ```python
+    assignments, objective = solve_classical(G, Q)
+    print(f"Classical solution found with objective {objective:.2f}")
+    ```
+    """
     num_tasks = len(G.nodes())
     num_processors = 3
     
@@ -717,7 +982,7 @@ def visualize_workflow_optimization(G, assignments):
         processor_groups[proc].append(task)
     
     # Draw nodes with different colors for each processor
-    colors = ['#FF9999', '#99FF99', '#9999FF']  # Red, Green, Blue tints
+    colors = ['#FF9999', '#99ff99', '#9999FF']  # Red, Green, Blue tints
     for i, (proc, tasks) in enumerate(processor_groups.items()):
         nx.draw_networkx_nodes(G, pos, ax=ax2,
                              nodelist=tasks,
