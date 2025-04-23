@@ -95,14 +95,6 @@ def add_resource_constraints(Q, G, processor_capacities):
     return Q
 ```
 
-## Performance Metrics
-
-| Problem Size | QAOA Time | Classical Time | Solution Quality |
-|-------------|-----------|----------------|------------------|
-| 10 tasks    | 2.3s     | 0.5s          | 98%             |
-| 20 tasks    | 5.1s     | 1.2s          | 95%             |
-| 30 tasks    | 8.7s     | 2.1s          | 92%             |
-
 ## Installation
 
 ```bash
