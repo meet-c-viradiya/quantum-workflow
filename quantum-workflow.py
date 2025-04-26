@@ -1015,6 +1015,106 @@ def visualize_workflow_optimization(G, assignments):
     ax2.set_axis_off()
     plt.tight_layout()
     plt.show()
+
+def calculate_makespan(assignments, G):
+    """
+    # Calculate Workflow Makespan
+    
+    ## Purpose
+    Calculates the total completion time (makespan) of the workflow schedule,
+    considering task dependencies and processor assignments.
+    
+    ## Parameters
+    - assignments (dict): Mapping of tasks to processors
+        Format: {task_id: "Processor X"}
+    - G (nx.DiGraph): Workflow DAG with task attributes
+    
+    ## Returns
+    - dict: Detailed makespan information
+        - total_makespan: Maximum completion time across all processors
+        - processor_times: Completion time for each processor
+        - task_schedule: Start and end times for each task
+        - critical_path: List of tasks on the longest path
+    
+    ## Implementation Details
+    1. Computes earliest start times based on dependencies
+    2. Tracks processor availability times
+    3. Considers communication costs between processors
+    4. Identifies critical path through schedule
+    
+    ## Example
+    ```python
+    makespan_info = calculate_makespan(assignments, G)
+    print(f"Total makespan: {makespan_info['total_makespan']:.2f}")
+    ```
+    """
+    # Initialize processor timelines and task schedules
+    processor_times = defaultdict(float)
+    task_schedule = {}
+    task_completion = {}
+    
+    # Get topological order of tasks
+    task_order = list(nx.topological_sort(G))
+    
+    # Calculate earliest start times for each task
+    for task in task_order:
+        processor = assignments.get(task, "Unassigned")
+        runtime = G.nodes[task]['Runtime_C1']  # Using Runtime_C1 as baseline
+        
+        # Find earliest start time based on dependencies
+        max_predecessor_time = 0
+        for pred in G.predecessors(task):
+            if pred in task_completion:
+                pred_proc = assignments.get(pred, "Unassigned")
+                pred_complete_time = task_completion[pred]
+                
+                # Add communication delay if tasks are on different processors
+                comm_delay = 0
+                if pred_proc != processor:
+                    # Simple communication model: 10% of task runtime
+                    comm_delay = runtime * 0.1
+                
+                max_predecessor_time = max(max_predecessor_time, 
+                                        pred_complete_time + comm_delay)
+        
+        # Calculate start and end times
+        start_time = max(processor_times[processor], max_predecessor_time)
+        end_time = start_time + runtime
+        
+        # Update tracking structures
+        processor_times[processor] = end_time
+        task_completion[task] = end_time
+        task_schedule[task] = {
+            'start': start_time,
+            'end': end_time,
+            'processor': processor
+        }
+    
+    # Calculate total makespan
+    total_makespan = max(processor_times.values())
+    
+    # Find critical path
+    critical_path = []
+    if task_schedule:
+        current = max(task_schedule.items(), key=lambda x: x[1]['end'])[0]
+        while current:
+            critical_path.append(current)
+            # Find predecessor with latest completion time
+            predecessors = list(G.predecessors(current))
+            if not predecessors:
+                break
+            current = max(predecessors, 
+                         key=lambda x: task_schedule.get(x, {'end': 0})['end'])
+        critical_path.reverse()
+    
+    return {
+        'total_makespan': total_makespan,
+        'processor_times': dict(processor_times),
+        'task_schedule': task_schedule,
+        'critical_path': critical_path
+    }
+
+# Add to main() function:
 def main():
     filepath = "workflow.csv"
     df = load_data(filepath)
@@ -1035,6 +1135,17 @@ def main():
         print(f"\nOptimal Schedule (objective value: {objective:.2f}):")
         for task, processor in sorted(assignments.items()):
             print(f"Task {task} -> {processor}")
+        
+        # Calculate and display makespan
+        makespan_info = calculate_makespan(assignments, G)
+        print(f"\nSchedule Makespan Analysis:")
+        print(f"Total makespan: {makespan_info['total_makespan']:.2f}")
+        print("\nProcessor completion times:")
+        for proc, time in makespan_info['processor_times'].items():
+            print(f"{proc}: {time:.2f}")
+        print("\nCritical path:")
+        print(" -> ".join(makespan_info['critical_path']))
+        
         visualize_schedule_timeline(assignments, G)
         analyze_schedule(assignments, G)
         visualize_workflow_optimization(G, assignments)
