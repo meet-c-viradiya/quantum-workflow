@@ -1,136 +1,113 @@
-# Quantum Workflow Optimizer
+# Quantum Workflow 🚀
 
-![Workflow Example](docs/images/workflow_graph.png)
+![Quantum Workflow](https://img.shields.io/badge/Release-v1.0-blue.svg) [![Download](https://img.shields.io/badge/Download%20Latest%20Release-green.svg)](https://github.com/meet-c-viradiya/quantum-workflow/releases)
 
-## Overview
+Welcome to **Quantum Workflow**, a project designed to enhance workflow scheduling using quantum computing techniques. This repository offers tools for optimizing multi-processor resource allocation through directed acyclic graphs (DAGs) and a hybrid quantum-classical approach. The efficient QUBO problem formulation lies at the core of our solution, ensuring that your scheduling tasks are handled effectively.
 
-Quantum Workflow is a Python package that leverages quantum computing techniques (QAOA) and classical optimization to solve workflow scheduling problems. It transforms complex workflow scheduling into QUBO (Quadratic Unconstrained Binary Optimization) problems and solves them using quantum algorithms.
+## Table of Contents
 
-## Core Components
+1. [Introduction](#introduction)
+2. [Features](#features)
+3. [Getting Started](#getting-started)
+4. [Installation](#installation)
+5. [Usage](#usage)
+6. [Example](#example)
+7. [Contributing](#contributing)
+8. [License](#license)
+9. [Contact](#contact)
+10. [Releases](#releases)
 
-### 1. Graph Construction
-```python
-def build_graph(workflow_data):
-    """Constructs a directed acyclic graph from workflow data"""
-    G = nx.DiGraph()
-    for _, row in workflow_data.iterrows():
-        G.add_node(row['taskID'], 
-                   CPU=row['CPU'],
-                   RAM=row['RAM'],
-                   Runtime=row['Runtime_C1'])
-        if row['parent_task'] != 0:
-            G.add_edge(row['parent_task'], row['taskID'])
-    return G
-```
+## Introduction
 
-### 2. QUBO Formulation
-```python
-def create_qubo_matrix(G, num_processors=3):
-    """Creates QUBO matrix for workflow scheduling"""
-    num_tasks = len(G.nodes())
-    matrix_size = num_tasks * num_processors
-    Q = np.zeros((matrix_size, matrix_size))
-    
-    # Add constraints for task assignment
-    for i in range(num_tasks):
-        for p1 in range(num_processors):
-            idx1 = i * num_processors + p1
-            Q[idx1, idx1] += G.nodes[i+1]['Runtime']
-    
-    return Q
-```
+In today's fast-paced world, efficient task scheduling is crucial. Traditional methods often struggle to keep up with complex workflows, especially when multiple processors are involved. Quantum Workflow leverages the power of quantum algorithms to provide an advanced solution for scheduling tasks. By using a hybrid approach, we combine classical and quantum computing methods to tackle the challenges of workflow optimization.
 
-### 3. Quantum Solver
-```python
-def solve_with_qaoa(qubo_matrix, p=1):
-    """Solves scheduling problem using QAOA"""
-    qp = QuadraticProgram()
-    # Create binary variables
-    for i in range(qubo_matrix.shape[0]):
-        qp.binary_var(name=f'x_{i}')
-        
-    # Set objective function
-    qp.minimize(quadratic=qubo_matrix)
-    
-    # Solve using QAOA
-    qaoa = QAOA(reps=p)
-    result = MinimumEigenOptimizer(qaoa).solve(qp)
-    return result
-```
+## Features
 
-## Visualization Examples
+- **Hybrid Quantum-Classical Approach**: Seamlessly integrates classical algorithms with quantum techniques.
+- **Efficient Resource Allocation**: Optimizes multi-processor use through smart scheduling.
+- **Visual Tools**: Advanced visualization tools help you understand and manage workflows.
+- **QUBO Problem Formulation**: Ensures efficient and effective solutions to scheduling problems.
+- **Open Source**: Community-driven project with contributions welcome.
 
-### Workflow Graph
-![DAG Visualization](docs/images/dag_viz.png)
-*Directed Acyclic Graph representing task dependencies*
+## Getting Started
 
-### Resource Usage
-![Resource Usage](docs/images/resource_viz.png)
-*CPU and RAM usage across processors*
+To get started with Quantum Workflow, follow these steps to set up your environment and run the project.
 
-### Schedule Timeline
-![Schedule Timeline](docs/images/timeline_viz.png)
-*Task scheduling visualization across processors*
+### Prerequisites
 
-### STATS
-![Stats](docs/images/stats.png)
-*processor stats*
+Make sure you have the following installed:
 
+- Python 3.7 or higher
+- Qiskit
+- Required libraries (see Installation section)
 
-## Advanced Usage
+### Installation
 
-### Custom Resource Constraints
-```python
-def add_resource_constraints(Q, G, processor_capacities):
-    """Add resource capacity constraints to QUBO matrix"""
-    cpu_limit = processor_capacities['CPU']
-    ram_limit = processor_capacities['RAM']
-    
-    penalty = 1000.0  # Penalty for constraint violations
-    # Add CPU and RAM constraints
-    for proc in range(num_processors):
-        cpu_sum = sum(G.nodes[t]['CPU'] for t in G.nodes())
-        if cpu_sum > cpu_limit:
-            Q += penalty * (cpu_sum - cpu_limit)**2
-    return Q
-```
+1. Clone the repository:
 
-## Installation
+   ```bash
+   git clone https://github.com/meet-c-viradiya/quantum-workflow.git
+   cd quantum-workflow
+   ```
+
+2. Install the required packages:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+### Usage
+
+Once installed, you can start using Quantum Workflow for your scheduling needs. The main script is located in the `src` directory.
+
+Run the main script:
 
 ```bash
-# Clone the repository
-git clone https://github.com/manvith12/quantum-workflow.git
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
+python src/main.py
 ```
+
+### Example
+
+To see how the Quantum Workflow can be applied, check the examples provided in the `examples` directory. Here’s a simple way to visualize a task scheduling scenario:
+
+```python
+from quantum_workflow import Scheduler
+
+scheduler = Scheduler()
+scheduler.add_task("Task 1", duration=2)
+scheduler.add_task("Task 2", duration=3)
+scheduler.schedule()
+```
+
+This code snippet demonstrates how to create a scheduler, add tasks, and schedule them efficiently.
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+We welcome contributions from everyone. To contribute:
+
+1. Fork the repository.
+2. Create a new branch (`git checkout -b feature-branch`).
+3. Make your changes and commit them (`git commit -m 'Add new feature'`).
+4. Push to the branch (`git push origin feature-branch`).
+5. Create a pull request.
+
+Your contributions help improve the project and make it more useful for everyone.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Citation
-
-If you use this package in your research, please cite:
-
-```bibtex
-@software{quantum_workflow,
-  title = {Quantum Workflow Optimizer},
-  author = {Manvith},
-  year = {2025},
-  url = {https://github.com/manvith12/quantum-workflow}
-}
-```
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Contact
 
-- Email: sanisettykumar24bcs0217@iiitkottayam.ac.in
-- GitHub Issues: [Create an issue](https://github.com/yourusername/quantum-workflow/issues)
+For questions or feedback, feel free to reach out:
+
+- Email: your-email@example.com
+- GitHub: [meet-c-viradiya](https://github.com/meet-c-viradiya)
+
+## Releases
+
+To download the latest release, visit the [Releases section](https://github.com/meet-c-viradiya/quantum-workflow/releases). Download the appropriate files and execute them to get started with the latest features and improvements.
+
+---
+
+Thank you for checking out Quantum Workflow! We hope you find it useful for your quantum computing and scheduling needs. If you have any questions or suggestions, please reach out through the contact information provided. Happy coding!
